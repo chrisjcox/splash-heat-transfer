@@ -58,50 +58,53 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MAIN:
-disp(' ')
-disp('Preliminaries...')
+tic
+fprintf('\nPreliminaries...\n')
 
 % % % Some constants
-kappa = 0.4                                                   ; % von Karman
-Prt = 1                                                       ; % turbulent Prandtl number: 1 makes Reynolds analogy, but it could be larger
-cp = 1005                                                     ; % specific heat, air, J/(kg K)
-m = 1                                                         ; % Fairall et al. (2000)
-lmda = 12                                                     ; % Reichardt (1951) 
-Us = 0                                                        ; % define wind speed at the surface as 0 m/s
+kappa = 0.4                                                ; % von Karman
+Prt = 1                                                    ; % turbulent Prandtl number: 1 makes Reynolds analogy, but it could be larger
+cp = 1005                                                  ; % specific heat, air, J/(kg K)
+m = 1                                                      ; % Fairall et al. (2000)
+lmda = 12                                                  ; % Reichardt (1951) 
+Us = 0                                                     ; % define wind speed at the surface as 0 m/s
 
 % % % Frame the problem
-dt = 0.2 * dx^2                                               ; % define dt for stable solution wrt dx
-nx = xht/dx                                                   ;
-x = (1:nx)*dx                                                 ; % [m]
-Ainv = 1/A                                                    ; % We actually need the inverse
-nt = 1e6                                                      ; % Specify large number of steps. Code will run until we hit tstar
+dt = 0.2 * dx^2                                            ; % define dt for stable solution wrt dx
+nx = xht/dx                                                ;
+x = (1:nx)*dx                                              ; % [m]
+Ainv = 1/A                                                 ; % We actually need the inverse
+nt = 1e6                                                   ; % Specify large number of steps. Code will run until we hit tstar
 
 % % % Initialize
-T = ones(1, int32(nx))*Tinf                                   ; % Bulk fluid temperature
-TK = Tinf+273.15                                              ; % in Kelvins
-T(1) = Twall                                                  ; % Wall temperature
+T = ones(1, int32(nx))*Tinf                                ; % Bulk fluid temperature
+TK = Tinf+273.15                                           ; % in Kelvins
+T(1) = Twall                                               ; % Wall temperature
 
 % % % Preliminary calculations
 if isempty(ustar)
-    ustar = edson2013_ustar(Uref)                             ; % Calulate ustar if it wasn't passed
+    ustar = edson2013_ustar(Uref)                          ; % Calulate ustar if it wasn't passed
 end
-disp(['ustar = ',num2str(ustar)])
-xstar = -F/cp/(ustar*rho)                                     ; % MO scaling parameter derived Dutsch et al,  Eq. (16)
-kair = 5.75e-5*(1+0.00317*Tinf-0.0000021*Tinf^2)              ; % Thermal Conductivity, air. Kannuluik & Carman (1951) (https://doi.org/10.1071/CH9510305)
-kair = kair * 4.1868 * 100                                    ; % cal/cm/s/C to W/m/C
-mu = 1.716e-5.*(TK./273.15).^(3./2).*((273.15+111)./(TK+111)) ; % Sutherland's formula for dynanmic viscocity of air
-nu = mu/rho                                                   ; % m2/s kinematic viscocity, air
-Pr = (cp * mu) / kair                                         ; % Prandtl Number 
-delt = lmda*nu/ustar                                          ; % dissipation length scale
+fprintf(['ustar = ',num2str(ustar),'\n'])
+xstar = -F/cp/(ustar*rho)                                  ; % MO scaling parameter derived Dutsch et al,  Eq. (16)
+kair = 5.75e-5*(1+0.00317*Tinf-0.0000021*Tinf^2)           ; % Thermal Conductivity, air. Kannuluik & Carman (1951) (https://doi.org/10.1071/CH9510305)
+kair = kair * 4.1868 * 100                                 ; % cal/cm/s/C to W/m/C
+mu = 1.716e-5.*(TK/273.15).^(3/2).*((273.15+111)/(TK+111)) ; % Sutherland's formula for dynanmic viscocity of air
+nu = mu/rho                                                ; % m2/s kinematic viscocity, air
+Pr = (cp * mu) / kair                                      ; % Prandtl Number 
+delt = lmda*nu/ustar                                       ; % dissipation length scale
 
 % % % Solve for alpha_c
+
 if isempty(alpha_c)
     alpha_c = alpha_solver(kappa,nu,ustar,xht,Ainv,delt,m,Uref,Us);
 end
-disp(['alpha_c = ',num2str(alpha_c)])
+
+fprintf(['alpha_c = ',num2str(alpha_c),'\n'])
 alpha_h = alpha_c * 0.3; % Mueller and Veron (2010)
 
 % % % Recalc Km using optimal alpha_c
+
 if sources < 3
     Km = kappa*ustar*x;
 else
@@ -109,7 +112,8 @@ else
 end
 
 % % % Solve the 1d diffusion equation
-disp('Solving 1D diffusion...')
+fprintf('Solving 1D diffusion...\n')
+tic
 for n = 2:nt  % for time
 
     Tn = T; % temporary copy
@@ -133,18 +137,14 @@ for n = 2:nt  % for time
     end
 
     if n*dt >= tstar && n < nt
-        disp(['Simulation run to t* = ',num2str(tstar),'s.'])
-        disp('Done.')
-        disp(' ')
+        fprintf(['Simulation run to t* = ',num2str(tstar),'s.\nDone.\n\n'])
         break; 
     elseif n == nt
-        disp('Need more time.')
-        disp('Done.')
-        disp(' ')
+        fprintf('Need more time.\nDone.\n\n')
     end
 
 end
-
+toc
 end
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
