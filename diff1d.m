@@ -1,5 +1,5 @@
 
-function [T,x] = diff1d(Tinf,Twall,tstar,xht,dx,ustar,A,rho,F,Uref,sources)
+function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sources,ustar,alpha_c)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % AUTHORS:
@@ -32,16 +32,19 @@ function [T,x] = diff1d(Tinf,Twall,tstar,xht,dx,ustar,A,rho,F,Uref,sources)
 % The plate need not be flat (case c).
 %
 % INPUT:
-%
+%   Required:
 % tstar   = time in seconds to run the model
 % xht     = depth of fluid. Practical limit [m]. The physics assume infinite.
 % dx      = discretized incriment of depth [m]
-% ustar   = friction velocity [m/s]
 % A       = height of form drag surface features (e.g., wave height)
 % rho     = air density
 % F       = surface sensible heat flux (W/m^2)
 % Uref    = wind speed
 % sources: 1 = visc, 2 = visc+turb, 3 = visc+turb+form
+%   Optional (if ignore, use []): 
+% ustar   = friction velocity [m/s]
+% alpha_c = fraction of momentum
+
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -51,7 +54,7 @@ disp(' ')
 disp('Preliminaries...')
 
 % Some constants
-nu = 1.3e-5                       ; % m2/s kinematic viscocity, air
+nu = 1.33e-5                       ; % m2/s kinematic viscocity, air
 kappa = 0.4                       ; % von karman
 D = 22e-6                         ; % mass diffusivity of air
 Sx = nu/D                         ; % Schmidt number 
@@ -80,14 +83,19 @@ disp(['ustar = ',num2str(ustar)])
 xstar = -F/cp/(ustar*rho)         ; % MO scaling parameter derived Dutsch et al,  Eq. (16)
 delt = lmda*nu/ustar              ; % dissipation length scale
 
-
-
 % Solve for alpha_c
-alpha_c = alpha_solver(kappa,nu,ustar,xht,Ainv,delt,m,Uref,Us);
+if isempty(alpha_c)
+    alpha_c = alpha_solver(kappa,nu,ustar,xht,Ainv,delt,m,Uref,Us);
+end
+disp(['alpha_c = ',num2str(alpha_c)])
 alpha_h = alpha_c * 0.3; % Mueller and Veron (2010)
 
 % Recalc Km using optimal alpha_c
-Km = Kmcalc(kappa,ustar,x,alpha_c,Ainv,delt,m);
+if sources < 3
+    Km = kappa*ustar*x;
+else
+    Km = Kmcalc(kappa,ustar,x,alpha_c,Ainv,delt,m);
+end
 
 % Solve the 1d diffusion equation
 disp('Solving 1D diffusion...')
@@ -190,7 +198,6 @@ function alpha_c = alpha_solver(kappa,nu,ustar,xht,Ainv,delt,m,Uref,Us)
     else
         alpha_c = abs(alpha_vector_hi(ii)); 
     end
-    disp(['alpha_c = ',num2str(alpha_c)])
 
 end
 
