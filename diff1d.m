@@ -167,10 +167,11 @@ end
 
 % Calculate Km
 % Eq. (10) from Dutsch et al.
+% Will return a alph by x matrix if alph is a vector 
 
 function Km = Kmcalc(kappa,ustar,x,alph,Ainv,delt,m)
 
-    Km = (kappa*ustar.*x .* sqrt(1-alph.*exp(-Ainv.*x))) ./ (1+(delt./x).^m); % Eq 10
+    Km = (kappa*ustar.*x .* sqrt(1-alph'.*exp(-Ainv.*x))) ./ (1+(delt./x).^m); % Eq 10
 
 end
 
@@ -186,23 +187,20 @@ function alpha_c = alpha_solver(kappa,nu,ustar,xht,Ainv,delt,m,Uref,Us)
     nx = xht/dx;
     x = (1:nx)*dx;
 
-    % a little slow...
-    % we will be coarse with the alpha sampling and interpolate later
-    % I'll look for a more robust way to speed this up later
-    alpha_vector = 0:0.1:1;
-    dU = NaN*alpha_vector;
-    for k = 1:length(alpha_vector)
-        Km = Kmcalc(kappa,ustar,x,alpha_vector(k),Ainv,delt,m);
-        dUdx = (ustar^2.*(1-alpha_vector(k).*exp(-Ainv.*x))) ./ (nu + Km); % Eq 12
-        dU(k) = (ustar*trapz(x,dUdx)); % Eq 13
-    end
+    % calculate for a coarse range of alpha to save time
+    alpha_vector = 0:0.25:1;
+    Km = Kmcalc(kappa,ustar,x,alpha_vector,Ainv,delt,m);
+    dUdx = (ustar^2.*(1-alpha_vector'.*exp(-Ainv.*x))) ./ (nu + Km); % Eq 12
+    dU = (ustar*sum(dUdx,2)*dx);
 
     % interp alpha results
-    alpha_vector_hi = 0:0.001:1;
+    diff_hi = 1e-5;
+    alpha_vector_hi = 0:diff_hi:1;
     dU_hi = interp1(alpha_vector,dU,alpha_vector_hi);
 
     % find the alpha that best fits Eq 13
-    ii = find(abs(dU_hi-(Uref-Us))<mode(diff(alpha_vector_hi))*10); 
+    ii = find(abs(dU_hi-(Uref-Us))<diff_hi*2); 
+
     if length(ii) > 1; ii = ii(1); end
     if isempty(ii) % happens at low wind speed
         alpha_c = 0;
