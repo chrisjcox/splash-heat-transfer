@@ -6,7 +6,15 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 %
 %   Christopher Cox (NOAA) christopher.j.cox@noaa.gov
 %
-%   Appreciate input from Chris Fairall (NWRA)
+%   Appreciate input from Chris Fairall (NWRA) & Lorena Barba's online
+%   Navier-Stokes materials.
+%
+%   Some References
+%
+%   Barba, Lorena A., and Forsyth, Gilbert F. (2018). J. Open Source Edu., 
+% %     1, 21, https://doi.org/10.21105/jose.00021
+%   Dutsch et al. (submitted, 2025). J. Adv. Mod. Earth Sys.  
+% 
 %
 % PURPOSE:
 %
@@ -34,7 +42,7 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 % INPUT:
 %   Required:
 % tstar   = time in seconds to run the model
-% xht     = depth of fluid. Practical limit [m]. The physics assume infinite.
+% xht     = depth of fluid. Practical limit [m]. The physics assume inf.
 % dx      = discretized incriment of depth [m]
 % A       = height of form drag surface features (e.g., wave height)
 % rho     = air density
@@ -53,51 +61,54 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 disp(' ')
 disp('Preliminaries...')
 
-% Some constants
-nu = 1.33e-5                       ; % m2/s kinematic viscocity, air
-kappa = 0.4                       ; % von karman
-D = 22e-6                         ; % mass diffusivity of air
-Sx = nu/D                         ; % Schmidt number 
-St = 1                            ; % turbulent Schmidt number: 1 makes Reynolds analogy, but it could be larger
-cp = 1005                         ; % specific heat, air
-m = 1                             ; % Fairall et al. (2000)
-lmda = 12                         ; % Reichardt (1951) 
-Us = 0                            ; % define wind speed at the surface as 0 m/s
+% % % Some constants
+kappa = 0.4                                                   ; % von Karman
+Prt = 1                                                       ; % turbulent Prandtl number: 1 makes Reynolds analogy, but it could be larger
+cp = 1005                                                     ; % specific heat, air, J/(kg K)
+m = 1                                                         ; % Fairall et al. (2000)
+lmda = 12                                                     ; % Reichardt (1951) 
+Us = 0                                                        ; % define wind speed at the surface as 0 m/s
 
-% Frame the problem
-dt = 0.2 * dx^2                   ; % define dt for stable solution wrt dx
-nx = xht/dx                       ;
-x = (1:nx)*dx                     ; % [m]
-Ainv = 1/A                        ; % We actually need the inverse
-nt = 1e6                          ; % Specify large number of steps. Code will run until we hit tstar
+% % % Frame the problem
+dt = 0.2 * dx^2                                               ; % define dt for stable solution wrt dx
+nx = xht/dx                                                   ;
+x = (1:nx)*dx                                                 ; % [m]
+Ainv = 1/A                                                    ; % We actually need the inverse
+nt = 1e6                                                      ; % Specify large number of steps. Code will run until we hit tstar
 
-% Initialize
-T = ones(1, int32(nx))*Tinf       ; % Bulk fluid temperature
-T(1) = Twall                      ; % Wall temperature
+% % % Initialize
+T = ones(1, int32(nx))*Tinf                                   ; % Bulk fluid temperature
+TK = Tinf+273.15                                              ; % in Kelvins
+T(1) = Twall                                                  ; % Wall temperature
 
-% Preliminary calculations
+% % % Preliminary calculations
 if isempty(ustar)
-    ustar = edson2013_ustar(Uref) ; % Calulate ustar if it wasn't passed
+    ustar = edson2013_ustar(Uref)                             ; % Calulate ustar if it wasn't passed
 end
 disp(['ustar = ',num2str(ustar)])
-xstar = -F/cp/(ustar*rho)         ; % MO scaling parameter derived Dutsch et al,  Eq. (16)
-delt = lmda*nu/ustar              ; % dissipation length scale
+xstar = -F/cp/(ustar*rho)                                     ; % MO scaling parameter derived Dutsch et al,  Eq. (16)
+kair = 5.75e-5*(1+0.00317*Tinf-0.0000021*Tinf^2)              ; % Thermal Conductivity, air. Kannuluik & Carman (1951) (https://doi.org/10.1071/CH9510305)
+kair = kair * 4.1868 * 100                                    ; % cal/cm/s/C to W/m/C
+mu = 1.716e-5.*(TK./273.15).^(3./2).*((273.15+111)./(TK+111)) ; % Sutherland's formula for dynanmic viscocity of air
+nu = mu/rho                                                   ; % m2/s kinematic viscocity, air
+Pr = (cp * mu) / kair                                         ; % Prandtl Number 
+delt = lmda*nu/ustar                                          ; % dissipation length scale
 
-% Solve for alpha_c
+% % % Solve for alpha_c
 if isempty(alpha_c)
     alpha_c = alpha_solver(kappa,nu,ustar,xht,Ainv,delt,m,Uref,Us);
 end
 disp(['alpha_c = ',num2str(alpha_c)])
 alpha_h = alpha_c * 0.3; % Mueller and Veron (2010)
 
-% Recalc Km using optimal alpha_c
+% % % Recalc Km using optimal alpha_c
 if sources < 3
     Km = kappa*ustar*x;
 else
     Km = Kmcalc(kappa,ustar,x,alpha_c,Ainv,delt,m);
 end
 
-% Solve the 1d diffusion equation
+% % % Solve the 1d diffusion equation
 disp('Solving 1D diffusion...')
 for n = 2:nt  % for time
 
@@ -105,8 +116,8 @@ for n = 2:nt  % for time
     
     for i = 2:nx-1 % for height (distance from wall)
 
-        viscous_term   = (nu./Sx .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
-        turbulent_term = (Km(i)./St .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
+        viscous_term   = (nu./Pr .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
+        turbulent_term = (Km(i)./Prt .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
         formdrag_term  = (alpha_h*ustar*xstar.*exp(-(Ainv)*x(i)));
 
         % What components are we including?
