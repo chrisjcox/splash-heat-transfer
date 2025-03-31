@@ -2,6 +2,7 @@
 function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sources,ustar,alpha_c)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
 % AUTHORS:
 %
 %   Christopher Cox (NOAA) christopher.j.cox@noaa.gov
@@ -9,10 +10,11 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 %   Appreciate input from Chris Fairall (NWRA) & Lorena Barba's online
 %   Navier-Stokes materials.
 %
-%   Some References
+% REFERENCES:
 %
 %   Barba, Lorena A., and Forsyth, Gilbert F. (2018). J. Open Source Edu., 
-% %     1, 21, https://doi.org/10.21105/jose.00021
+%      1, 21, https://doi.org/10.21105/jose.00021
+%
 %   Dutsch et al. (submitted, 2025). J. Adv. Mod. Earth Sys.  
 % 
 %
@@ -34,10 +36,18 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 %
 % ∂T/∂t = (𝛎/Smo*∂^2T/∂x^2  + Km/Stu*∂^2T/∂x^2 + ɑ_c*ustar*xstar*exp(-Az))
 %
+% where Schmidt number scaling is replaced with the Prandtl number for to
+% yield diffusivity:
+%
+% ∂T/∂t = (𝛎/Pr*∂^2T/∂x^2  + Km/Prt*∂^2T/∂x^2 + ɑ_c*ustar*xstar*exp(-Az))
+%
+% The Reynold's Analogy is applied so Stu = Prt = 1.
+%
 % The problem is framed as the development of a thermal boundary layer for
 % a turbulent fluid of one temperature adjacent to a plate of another
 % temperature. Wall temperture and bulk fluid temperature cannot change.
-% The plate need not be flat (case c).
+% The plate need not be flat (case c), but currently skin drag is not
+% directly parameterized.
 %
 % INPUT:
 %   Required:
