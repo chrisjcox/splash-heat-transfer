@@ -1,5 +1,5 @@
 
-function L = integral_length_scale(u,dn)
+function [L,DN] = integral_length_scale(u,dn)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
