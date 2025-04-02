@@ -80,7 +80,6 @@ lmda = 12                                                  ; % Reichardt (1951)
 Us = 0                                                     ; % define wind speed at the surface as 0 m/s
 
 % % % Frame the problem
-dt = 0.2 * dx^2                                            ; % define dt for stable solution wrt dx
 nx = xht/dx                                                ;
 x = (1:nx)*dx                                              ; % [m]
 Ainv = 1/A                                                 ; % We actually need the inverse
@@ -120,6 +119,21 @@ if sources < 3
 else
     Km = Kmcalc(kappa,ustar,x,alpha_c,Ainv,delt,m);
 end
+
+
+% % % Define dt for stability
+
+% 1) For this equation, diffusivity is our analog to fluid velocity
+%    We will use the max value.
+Dvisc = nu/Pr;
+Dturb = max(Km);
+Dform = max(calc_Dform(alpha_h,ustar,xstar,Ainv,x));
+Dmax  = Dvisc+Dturb+Dform;
+
+% 2) Sigma is Courant–Friedrichs–Lewy number. 0.2-0.5 are typical.
+sigma = 0.5;
+dt = (sigma*dx^2)/(Dmax*2);
+fprintf(['dt = ',num2str(dt),'\n'])
 
 % % % Solve the 1d diffusion equation
 fprintf('Solving 1D diffusion...\n')
@@ -164,6 +178,14 @@ end
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBS:
 
+
+% Calculate the form drag term
+
+function Dform = calc_Dform(alpha_h,ustar,xstar,Ainv,x)
+
+    Dform = (alpha_h*ustar*xstar.*exp(-(Ainv)*x));
+
+end
 
 % Calculate ustar from Uref using Edson et al. (2013) parameterization
 % https://doi.org/10.1175/JPO-D-12-0173.1
