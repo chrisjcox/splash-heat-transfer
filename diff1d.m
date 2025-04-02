@@ -129,8 +129,16 @@ Dform = max(calc_Dform(alpha_h,ustar,xstar,Ainv,x));
 Dmax  = Dvisc+Dturb+Dform;
 
 % 2) Sigma is Courant–Friedrichs–Lewy number. 0.2-0.5 are typical.
-sigma = 0.5;
-dt = (sigma*dx^2)/(Dmax*2);
+%    This is probably unconventional, but to make the code run more
+%    efficiently, I will choose the largest value of dt that satisfies the
+%    CFL criterion that sigma <= 1
+sigma = 1e1; % arbitrary number > 1
+dt = 1e1; % 10s is to coarse
+while sigma > 1
+    dt = dt/1.01;
+    sigma = Dmax*2*dt/dx^2;
+end
+fprintf(['sigma = ',num2str(sigma),'\n'])
 fprintf(['dt = ',num2str(dt),'\n'])
 
 % 3) Calculate number of time steps
