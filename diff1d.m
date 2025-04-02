@@ -96,11 +96,10 @@ if isempty(ustar)
 end
 fprintf(['ustar = ',num2str(ustar),'\n'])
 xstar = -F/cp/(ustar*rho)                                  ; % MO scaling parameter derived Dutsch et al,  Eq. (16)
-kair = 5.75e-5*(1+0.00317*Tinf-0.0000021*Tinf^2)           ; % Thermal Conductivity, air. Kannuluik & Carman (1951) (https://doi.org/10.1071/CH9510305)
-kair = kair * 4.1868 * 100                                 ; % cal/cm/s/C to W/m/C
-mu = 1.716e-5.*(TK/273.15).^(3/2).*((273.15+111)/(TK+111)) ; % Sutherland's formula for dynanmic viscocity of air
+kair = calc_kair(Tinf)                                     ; % Thermal Conductivity, air. Kannuluik & Carman (1951) (https://doi.org/10.1071/CH9510305)
+mu = calc_dnyamic_viscocity(TK)                            ; % Sutherland's formula for dynanmic viscocity of air
 nu = mu/rho                                                ; % m2/s kinematic viscocity, air
-Pr = (cp * mu) / kair                                      ; % Prandtl Number 
+Pr = calc_prandtl(cp,mu,kair)                              ; % Prandtl Number 
 delt = lmda*nu/ustar                                       ; % dissipation length scale
 
 % % % Solve for alpha_c
@@ -146,7 +145,7 @@ for n = 2:nt  % for time
 
         viscous_term   = (nu./Pr .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
         turbulent_term = (Km(i)./Prt .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
-        formdrag_term  = (alpha_h*ustar*xstar.*exp(-(Ainv)*x(i)));
+        formdrag_term  = calc_Dform(alpha_h,ustar,xstar,Ainv,x(i));
 
         % What components are we including?
         switch sources
