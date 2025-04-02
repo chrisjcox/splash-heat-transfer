@@ -83,7 +83,6 @@ Us = 0                                                     ; % define wind speed
 nx = xht/dx                                                ;
 x = (1:nx)*dx                                              ; % [m]
 Ainv = 1/A                                                 ; % We actually need the inverse
-nt = 1e6                                                   ; % Specify large number of steps. Code will run until we hit tstar
 
 % % % Initialize
 T = ones(1, int32(nx))*Tinf                                ; % Bulk fluid temperature
@@ -134,6 +133,10 @@ sigma = 0.5;
 dt = (sigma*dx^2)/(Dmax*2);
 fprintf(['dt = ',num2str(dt),'\n'])
 
+% 3) Calculate number of time steps
+nt = tstar/dt;
+
+
 % % % Solve the 1d diffusion equation
 fprintf('Solving 1D diffusion...\n')
 tic
@@ -159,14 +162,8 @@ for n = 2:nt  % for time
 
     end
 
-    if n*dt >= tstar && n < nt
-        fprintf(['Simulation run to t* = ',num2str(tstar),'s.\nDone.\n\n'])
-        break; 
-    elseif n == nt
-        fprintf('Need more time.\nDone.\n\n')
-    end
-
 end
+fprintf(['Simulation run to t* = ',num2str(tstar),'s.\nDone.\n\n'])
 toc
 end
 
