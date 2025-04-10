@@ -1,5 +1,5 @@
 
-function [L,DN] = integral_length_scale(u,dn)
+function [L,DN] = integral_length_scale(u,dn,dt,integ_time)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -32,9 +32,10 @@ function [L,DN] = integral_length_scale(u,dn)
 %
 % INPUT:
 %
-%   u = wind velocity. Code assumes U is 10 Hz.
+%   u = wind velocity in m s^-1
 %   dn = time scale in Matlab datenums
-%   ts = time scale. Default 10 min.
+%   integ_time = time scale for integration in min
+%   dt = sample rate of u n Hz
 %
 % OUTPUT:
 %
@@ -42,18 +43,15 @@ function [L,DN] = integral_length_scale(u,dn)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Sampling rate
-dt = 10; % Hz
-integ_time = 10; % min
-
 % Smooth with boxcar convolution using integration period (10 min)
-U = movmean(u,dt*60*integ_time); % dt [s^-1] * 60 [s] * 10 [min]
+
+U = movmean(u,dt*60*integ_time); % dt [s^-1] * 60 [s] * integ_time  [min]
 
 % Calculate fluctuations about mean wind speed.
 r = u - U;
 
 % Make a time vector 
-DN = datenum(floor(dn(1)):1/(1440/integ_time):floor(dn(1))+1);
+DN = datenum(floor(dn(1)):1/(1440/integ_time):ceil(dn(end)));
 
 % Calculate
 L = NaN.*DN;

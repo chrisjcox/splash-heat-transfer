@@ -36,7 +36,7 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 %
 % ∂T/∂t = (𝛎/Smo*∂^2T/∂x^2  + Km/Stu*∂^2T/∂x^2 + ɑ_c*ustar*xstar*exp(-Az))
 %
-% where Schmidt number scaling is replaced with the Prandtl number for to
+% where Schmidt number scaling is replaced with the Prandtl number to
 % yield diffusivity:
 %
 % ∂T/∂t = (𝛎/Pr*∂^2T/∂x^2  + Km/Prt*∂^2T/∂x^2 + ɑ_c*ustar*xstar*exp(-Az))
@@ -57,7 +57,7 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 % A       = height of form drag surface features (e.g., wave height)
 % rho     = air density
 % F       = surface sensible heat flux (W/m^2)
-% Uref    = wind speed
+% Uref    = wind speed. Should be at xht.
 % sources: 1 = visc, 2 = visc+turb, 3 = visc+turb+form
 %   Optional (if ignore, use []): 
 % ustar   = friction velocity [m/s]
@@ -68,19 +68,19 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MAIN:
-tic
+%tic
 fprintf('\nPreliminaries...\n')
 
 % % % Some constants
 kappa = 0.4                                                ; % von Karman
-Prt = 1                                                    ; % turbulent Prandtl number: 1 makes Reynolds analogy, but it could be larger
+Prt = 0.85                                                 ; % turbulent Prandtl number from based on RNG method from Li (2019) (https://doi.org/10.1016/j.atmosres.2018.09.015)
 cp = 1005                                                  ; % specific heat, air, J/(kg K)
 m = 1                                                      ; % Fairall et al. (2000)
 lmda = 12                                                  ; % Reichardt (1951) 
 Us = 0                                                     ; % define wind speed at the surface as 0 m/s
 
 % % % Frame the problem
-nx = xht/dx                                                ;
+nx = xht/dx                                                ; % number of spatial layers
 x = (1:nx)*dx                                              ; % [m]
 Ainv = 1/A                                                 ; % We actually need the inverse
 
@@ -133,7 +133,7 @@ Dmax  = Dvisc+Dturb+Dform;
 %    efficiently, I will choose the largest value of dt that satisfies the
 %    CFL criterion that sigma <= 1
 sigma = 1e1; % arbitrary number > 1
-dt = 1e1; % 10s is to coarse
+dt = 1e1; % 10s is too coarse
 while sigma > 1
     dt = dt/1.01;
     sigma = Dmax*2*dt/dx^2;
@@ -147,7 +147,7 @@ nt = tstar/dt;
 
 % % % Solve the 1d diffusion equation
 fprintf('Solving 1D diffusion...\n')
-tic
+
 for n = 2:nt  % for time
 
     Tn = T; % temporary copy
@@ -172,7 +172,7 @@ for n = 2:nt  % for time
 
 end
 fprintf(['Simulation run to t* = ',num2str(tstar),'s.\nDone.\n\n'])
-toc
+%toc
 end
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
