@@ -1,5 +1,5 @@
 
-function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sources,ustar,alpha_c)
+function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sources,ustar,alpha_c,seqmode)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -62,6 +62,7 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 %   Optional (if ignore, use []): 
 % ustar   = friction velocity [m/s]
 % alpha_c = fraction of momentum
+% seqmode: 1 = on, 0 = off. sequential mode to return 60 Hz output from sim  
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -144,6 +145,12 @@ fprintf(['dt = ',num2str(dt),'\n'])
 % 3) Calculate number of time steps
 nt = tstar/dt;
 
+% 4) Set up sequential mode
+taccum = 0; % initialize a time counter
+seqcount = 1;
+if seqmode
+    Tseq = NaN(length(x),round(tstar*60)); % initialize sequantial output array. we are only doing output a 60 Hz to be reasonable
+end
 
 % % % Solve the 1d diffusion equation
 fprintf('Solving 1D diffusion...\n')
@@ -151,6 +158,7 @@ fprintf('Solving 1D diffusion...\n')
 for n = 2:nt  % for time
 
     Tn = T; % temporary copy
+    taccum = taccum + n/dt; % time accumulation counter
     
     for i = 2:nx-1 % for height (distance from wall)
 
@@ -170,9 +178,24 @@ for n = 2:nt  % for time
 
     end
 
+    % Save sequential mode
+    if seqmode
+
+        if mod(n*dt, 1/60) < dt
+            Tseq(:,seqcount) = T;
+            seqcount = seqcount + 1; % counter for storing data
+        end        
+
+    end
+
 end
 fprintf(['Simulation run to t* = ',num2str(tstar),'s.\nDone.\n\n'])
-%toc
+
+% swap the output for the matrix if needed
+if seqmode
+    T = Tseq;
+end
+
 end
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
