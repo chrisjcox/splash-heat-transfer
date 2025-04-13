@@ -159,13 +159,13 @@ for n = 2:nt  % for time
 
     Tn = T; % temporary copy
     taccum = taccum + n/dt; % time accumulation counter
-    
+
     for i = 2:nx-1 % for height (distance from wall)
 
         viscous_term   = (nu./Pr .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
         turbulent_term = (Km(i)./Prt .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
         formdrag_term  = calc_Dform(alpha_h,ustar,xstar,Ainv,x(i));
-
+        
         % What components are we including?
         switch sources
             case 1
@@ -186,6 +186,12 @@ for n = 2:nt  % for time
             seqcount = seqcount + 1; % counter for storing data
         end        
 
+    end
+
+    % Break if dT at the upper boundary > 0
+    if abs(T(end-1) - Tinf) ~= 0
+        fprintf('Thermal boundary layer exceeds upper boundary.\nDone.\n\n')
+        break
     end
 
 end
