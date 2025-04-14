@@ -1,5 +1,5 @@
 
-function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sources,ustar,alpha_c,seqmode)
+function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,wht,sources,ustar,alpha_c,seqmode)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -53,6 +53,7 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,sourc
 %   Required:
 % tstar   = time in seconds to run the model
 % xht     = depth of fluid. Practical limit [m]. The physics assume inf.
+% wht     = height of the Uref measurement [m]
 % dx      = discretized incriment of depth [m]
 % A       = height of form drag surface features (e.g., wave height)
 % rho     = air density
@@ -105,7 +106,7 @@ delt = lmda*nu/ustar                                       ; % dissipation lengt
 % % % Solve for alpha_c
 
 if isempty(alpha_c)
-    alpha_c = alpha_solver(kappa,nu,ustar,xht,Ainv,delt,m,Uref,Us);
+    alpha_c = alpha_solver(kappa,nu,ustar,wht,Ainv,delt,m,Uref,Us);
 end
 
 fprintf(['alpha_c = ',num2str(alpha_c),'\n'])
@@ -164,12 +165,12 @@ for n = 2:nt  % for time
 
         viscous_term   = (nu./Pr .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
         turbulent_term = (Km(i)./Prt .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
-        formdrag_term  = calc_Dform(alpha_h,ustar,xstar,Ainv,x(i));
-        
+        formdrag_term = calc_Dform(alpha_h,ustar,xstar,Ainv,x(i));
+
         % What components are we including?
         switch sources
             case 1
-                T(i) = Tn(i) + viscous_term;
+                T(i) = Tn(i) + turbulent_term;
             case 2
                 T(i) = Tn(i) + viscous_term + turbulent_term;
             case 3
@@ -195,11 +196,12 @@ for n = 2:nt  % for time
     end
 
 end
+
 fprintf(['Simulation run to t* = ',num2str(tstar),'s.\nDone.\n\n'])
 
 % swap the output for the matrix if needed
 if seqmode
-    T = Tseq;
+    T = Tseq(:,1:seqcount-1);
 end
 
 end
@@ -243,13 +245,13 @@ end
 
 % Solve for alpha_c using Dutsch et al. Eqs 10, 12, 13
 
-function alpha_c = alpha_solver(kappa,nu,ustar,xht,Ainv,delt,m,Uref,Us)
+function alpha_c = alpha_solver(kappa,nu,ustar,wht,Ainv,delt,m,Uref,Us)
 
     disp('Solving for alpha_c...')
 
     % first, specify x at high resolution
     dx = 1e-6;
-    nx = xht/dx;
+    nx = wht/dx;
     x = (1:nx)*dx;
 
     % calculate for a coarse range of alpha to save time
