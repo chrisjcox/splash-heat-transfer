@@ -134,15 +134,15 @@ Dmax  = Dvisc+Dturb+Dform;
 %    This is probably unconventional, but to make the code run more
 %    efficiently, I will choose the largest value of dt that satisfies the
 %    CFL criterion that sigma <= 1
-sigma = 1e1; % arbitrary number > 1
-dt = 1e1; % 10s is too coarse
-while sigma > 1
-    dt = dt/1.01;
-    sigma = Dmax*2*dt/dx^2;
-end
-fprintf(['sigma = ',num2str(sigma),'\n'])
-fprintf(['dt = ',num2str(dt),'\n'])
-
+% sigma = 1e1; % arbitrary number > 1
+% dt = 1e1; % 10s is too coarse
+% while sigma > 1
+%     dt = dt/1.01;
+%     sigma = Dmax*2*dt/dx^2;
+% end
+% fprintf(['sigma = ',num2str(sigma),'\n'])
+% fprintf(['dt = ',num2str(dt),'\n'])
+dt = 3.1542e-05
 % 3) Calculate number of time steps
 nt = tstar/dt;
 
@@ -163,14 +163,14 @@ for n = 2:nt  % for time
 
     for i = 2:nx-1 % for height (distance from wall)
 
-        viscous_term   = (nu./Pr .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
+        viscous_term   = (nu./Pr     .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
         turbulent_term = (Km(i)./Prt .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
         formdrag_term = calc_Dform(alpha_h,ustar,xstar,Ainv,x(i));
 
         % What components are we including?
         switch sources
             case 1
-                T(i) = Tn(i) + turbulent_term;
+                T(i) = Tn(i) + viscous_term;
             case 2
                 T(i) = Tn(i) + viscous_term + turbulent_term;
             case 3
@@ -191,6 +191,7 @@ for n = 2:nt  % for time
 
     % Break if dT at the upper boundary > 0
     if abs(T(end-1) - Tinf) ~= 0
+        T = T.*0 + -999.;
         fprintf('Thermal boundary layer exceeds upper boundary.\nDone.\n\n')
         break
     end
