@@ -134,15 +134,15 @@ Dmax  = Dvisc+Dturb+Dform;
 %    This is probably unconventional, but to make the code run more
 %    efficiently, I will choose the largest value of dt that satisfies the
 %    CFL criterion that sigma <= 1
-% sigma = 1e1; % arbitrary number > 1
-% dt = 1e1; % 10s is too coarse
-% while sigma > 1
-%     dt = dt/1.01;
-%     sigma = Dmax*2*dt/dx^2;
-% end
-% fprintf(['sigma = ',num2str(sigma),'\n'])
-% fprintf(['dt = ',num2str(dt),'\n'])
-dt = 3.1542e-05
+sigma = 1e1; % arbitrary number > 1
+dt = 1e1; % 10s is too coarse
+while sigma > 1
+    dt = dt/1.01;
+    sigma = Dmax*2*dt/dx^2;
+end
+fprintf(['sigma = ',num2str(sigma),'\n'])
+fprintf(['dt = ',num2str(dt),'\n'])
+
 % 3) Calculate number of time steps
 nt = tstar/dt;
 
