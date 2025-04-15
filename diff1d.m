@@ -32,22 +32,27 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,wht,s
 % (case c) c is the sum of viscous, turbulent, and form drag stresses.
 %
 % Case c: this code becomes a transient solution for the steady-state model
-% proposed by Dutsch et al. (2025). Thus,
+% proposed by Dutsch et al. (2025). Thus, for variable of interest, X, 
 %
-% ∂T/∂t = (𝛎/Smo*∂^2T/∂x^2  + Km/Stu*∂^2T/∂x^2 + ɑ_c*ustar*xstar*exp(-Az))
+% ∂X/∂t = (𝛎/Smo*∂^2X/∂x^2  + 
+%          Km/Stu*∂^2X/∂x^2 + 
+%          ∂(Km/Stu)/∂x * ∂X/∂x +
+%          ∂(ɑ_h*ustar*xstar*exp(-Az))/dx)
 %
 % where Schmidt number scaling is replaced with the Prandtl number to
-% yield diffusivity:
+% yield diffusivity and our scalar of interest is temperature:
 %
-% ∂T/∂t = (𝛎/Pr*∂^2T/∂x^2  + Km/Prt*∂^2T/∂x^2 + ɑ_c*ustar*xstar*exp(-Az))
-%
-% The Reynold's Analogy is applied so Stu = Prt = 1.
+% ∂T/∂t = (𝛎/Pr*∂^2T/∂x^2  + 
+%          Km/Prt*∂^2T/∂x^2 + 
+%          ∂(Km/Prt)/∂x * ∂T/∂x + 
+%          ∂(ɑ_h*ustar*xstar*exp(-Az))/dx)
 %
 % The problem is framed as the development of a thermal boundary layer for
 % a turbulent fluid of one temperature adjacent to a plate of another
 % temperature. Wall temperture and bulk fluid temperature cannot change.
-% The plate need not be flat (case c), but currently skin drag is not
-% directly parameterized.
+% The plate need not be flat (case c). u* implicitly includes contributions
+% from both skin and form drag and thus, a_c scales the form contributions
+% appropriately.
 %
 % INPUT:
 %   Required:
@@ -62,7 +67,7 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,wht,s
 % sources: 1 = visc, 2 = visc+turb, 3 = visc+turb+form
 %   Optional (if ignore, use []): 
 % ustar   = friction velocity [m/s]
-% alpha_c = fraction of momentum
+% alpha_c = fraction of momentum due to form drag
 % seqmode: 1 = on, 0 = off. sequential mode to return 60 Hz output from sim  
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -120,7 +125,6 @@ else
     Km = Kmcalc(kappa,ustar,x,alpha_c,Ainv,delt,m);
 end
 
-
 % % % Define dt for stability
 
 % 1) For this equation, diffusivity is our analog to fluid velocity
@@ -153,6 +157,10 @@ if seqmode
     Tseq = NaN(length(x),round(tstar*60)); % initialize sequantial output array. we are only doing output a 60 Hz to be reasonable
 end
 
+% 5) Calculate the form drag term
+%    Outside the loop for speed...
+formdrag  = calc_Dform(alpha_h,ustar,xstar,Ainv,x);
+
 % % % Solve the 1d diffusion equation
 fprintf('Solving 1D diffusion...\n')
 
@@ -165,16 +173,18 @@ for n = 2:nt  % for time
 
         viscous_term   = (nu./Pr     .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
         turbulent_term = (Km(i)./Prt .* dt / dx^2 * (Tn(i+1) - 2 * Tn(i) + Tn(i-1)));
-        formdrag_term = calc_Dform(alpha_h,ustar,xstar,Ainv,x(i));
+        dTdx           = (Tn(i)-Tn(i-1)) * dt / dx;
+        dturbdx        = (Km(i)-Km(i-1)) * dt / dx;
+        formdrag_term  = (formdrag(i)-formdrag(i-1)) * dt / dx;
 
         % What components are we including?
         switch sources
             case 1
                 T(i) = Tn(i) + viscous_term;
             case 2
-                T(i) = Tn(i) + viscous_term + turbulent_term;
+                T(i) = Tn(i) + viscous_term + dTdx*dturbdx + turbulent_term;
             case 3
-                T(i) = Tn(i) + viscous_term + turbulent_term + formdrag_term;
+                T(i) = Tn(i) + viscous_term + dTdx*dturbdx + turbulent_term + formdrag_term; 
         end
 
     end
