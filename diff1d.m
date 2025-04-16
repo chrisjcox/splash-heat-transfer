@@ -68,7 +68,7 @@ function [T,x,ustar,alpha_c] = diff1d(Tinf,Twall,tstar,xht,dx,A,rho,F,Uref,wht,s
 %   Optional (if ignore, use []): 
 % ustar   = friction velocity [m/s]
 % alpha_c = fraction of momentum due to form drag
-% seqmode: 1 = on, 0 = off. sequential mode to return 60 Hz output from sim  
+% seqmode: 1 = on, 0 = off. sequential mode to return 30 Hz output from sim  
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -92,8 +92,8 @@ x = (1:nx)*dx                                              ; % [m]
 Ainv = 1/A                                                 ; % We actually need the inverse
 
 % % % Initialize
-T = ones(1, int32(nx))*Tinf                                ; % Bulk fluid temperature
-TK = Tinf+273.15                                           ; % in Kelvins
+T = single(ones(1, int32(nx))*Tinf)                        ; % Bulk fluid temperature
+TK = single(Tinf+273.15)                                   ; % in Kelvins
 T(1) = Twall                                               ; % Wall temperature
 
 % % % Preliminary calculations
@@ -154,7 +154,7 @@ nt = tstar/dt;
 taccum = 0; % initialize a time counter
 seqcount = 1;
 if seqmode
-    Tseq = NaN(length(x),round(tstar*60)); % initialize sequantial output array. we are only doing output a 60 Hz to be reasonable
+    Tseq = NaN(length(x),round(tstar*30)); % initialize sequantial output array. we are only doing output a 30 Hz to be reasonable
 end
 
 % 5) Calculate the form drag term
@@ -192,7 +192,7 @@ for n = 2:nt  % for time
     % Save sequential mode
     if seqmode
 
-        if mod(n*dt, 1/60) < dt
+        if mod(n*dt, 1/30) < dt
             Tseq(:,seqcount) = T;
             seqcount = seqcount + 1; % counter for storing data
         end        
