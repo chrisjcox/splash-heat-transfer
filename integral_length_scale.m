@@ -43,7 +43,7 @@ function [L,DN] = integral_length_scale(u,dn,dt,integ_time)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Smooth with boxcar convolution using integration period (10 min)
+% Smooth with boxcar convolution using integration period
 
 U = movmean(u,dt*60*integ_time); % dt [s^-1] * 60 [s] * integ_time  [min]
 
