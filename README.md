@@ -7,4 +7,4 @@ Christopher J. Cox, Bianca Adler, Brian J. Butterworth, et al. Processes modulat
 
 #### Turbulent sensible heat flux in an isothermal layer
 
-[profile_variances.html](https://github.com/chrisjcox/splash-heat-transfer/blob/main/paper_workflows/profile_variances.html) [![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=chrisjcox/splash-heat-transfers&file=live/profile_variances.mlx)
+[profile_variances.html](https://htmlpreview.github.io/?https://github.com/chrisjcox/splash-heat-transfer/blob/main/paper_workflows/profile_variances.html) [![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=chrisjcox/splash-heat-transfers&file=live/profile_variances.mlx)
